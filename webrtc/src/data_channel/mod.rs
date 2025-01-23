@@ -29,8 +29,8 @@ use crate::sctp_transport::RTCSctpTransport;
 use crate::stats::stats_collector::StatsCollector;
 use crate::stats::{DataChannelStats, StatsReportType};
 
-/// message size limit for Chromium
-const DATA_CHANNEL_BUFFER_SIZE: u16 = u16::MAX;
+/// message size limit for Chromium is 65535
+const DATA_CHANNEL_BUFFER_SIZE: usize = 4 * 1024 * 1024; // 4 MiB
 
 pub type OnMessageHdlrFn = Box<
     dyn (FnMut(DataChannelMessage) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>>)
