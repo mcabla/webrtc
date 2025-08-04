@@ -1142,7 +1142,7 @@ async fn test_eof_detach() -> Result<()> {
                     let detached = match dc4.detach().await {
                         Ok(detached) => detached,
                         Err(err) => {
-                            log::debug!("Detach failed: {}", err);
+                            log::debug!("Detach failed: {err}");
                             panic!();
                         }
                     };
@@ -1271,7 +1271,7 @@ async fn test_eof_no_detach() -> Result<()> {
     let dca2 = Arc::clone(&dca);
     dca.on_open(Box::new(move || {
         log::debug!("pca: data channel opened");
-        log::debug!("pca: sending {:?}", test_data);
+        log::debug!("pca: sending {test_data:?}");
         let dca3 = Arc::clone(&dca2);
         Box::pin(async move {
             let _ = dca3.send(&Bytes::from_static(test_data)).await;
@@ -1428,7 +1428,7 @@ impl TestOrtcStack {
         self.dtls.start(sig.dtls_parameters.clone()).await?;
 
         // Start the SCTP transport
-        self.sctp.start(sig.sctp_capabilities).await?;
+        self.sctp.start(sig.sctp_capabilities, 5000, 5000).await?;
 
         Ok(())
     }

@@ -1,9 +1,10 @@
 #[cfg(test)]
 mod url_test;
 
-use std::borrow::Cow;
 use std::convert::From;
 use std::fmt;
+
+use stun::{DEFAULT_PORT, DEFAULT_TLS_PORT};
 
 use crate::error::*;
 
@@ -166,9 +167,9 @@ impl Url {
         let port = if let Some(port) = raw_parts.port() {
             port
         } else if scheme == SchemeType::Stun || scheme == SchemeType::Turn {
-            3478
+            DEFAULT_PORT
         } else {
-            5349
+            DEFAULT_TLS_PORT
         };
 
         let mut q_args = raw_parts.query_pairs();
@@ -190,7 +191,7 @@ impl Url {
                     return Err(Error::ErrInvalidQuery);
                 }
                 if let Some((key, value)) = q_args.next() {
-                    if key == Cow::Borrowed("transport") {
+                    if key == "transport" {
                         let proto: ProtoType = value.as_ref().into();
                         if proto == ProtoType::Unknown {
                             return Err(Error::ErrProtoType);
@@ -208,7 +209,7 @@ impl Url {
                     return Err(Error::ErrInvalidQuery);
                 }
                 if let Some((key, value)) = q_args.next() {
-                    if key == Cow::Borrowed("transport") {
+                    if key == "transport" {
                         let proto: ProtoType = value.as_ref().into();
                         if proto == ProtoType::Unknown {
                             return Err(Error::ErrProtoType);
