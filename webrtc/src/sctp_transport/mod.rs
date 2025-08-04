@@ -136,7 +136,12 @@ impl RTCSctpTransport {
     /// Start the SCTPTransport. Since both local and remote parties must mutually
     /// create an SCTPTransport, SCTP SO (Simultaneous Open) is used to establish
     /// a connection over SCTP.
-    pub async fn start(&self, _remote_caps: SCTPTransportCapabilities) -> Result<()> {
+    pub async fn start(
+        &self,
+        _remote_caps: SCTPTransportCapabilities,
+        local_port: u16,
+        remote_port: u16,
+    ) -> Result<()> {
         if self.is_started.load(Ordering::SeqCst) {
             return Ok(());
         }
@@ -159,6 +164,8 @@ impl RTCSctpTransport {
                         max_receive_buffer_size: 0,
                         max_message_size: 0,
                         name: String::new(),
+                        local_port,
+                        remote_port,
                     }) => {
                         break Arc::new(association?);
                     }
@@ -232,7 +239,7 @@ impl RTCSctpTransport {
                         Ok(dc) => dc,
                         Err(err) => {
                             if data::Error::ErrStreamClosed == err {
-                                log::error!("Failed to accept data channel: {}", err);
+                                log::error!("Failed to accept data channel: {err}");
                                 if let Some(handler) = &*param.on_error_handler.load() {
                                     let mut f = handler.lock().await;
                                     f(err.into()).await;

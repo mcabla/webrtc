@@ -28,9 +28,9 @@ use crate::stats::StatsReportType::Codec;
 /// MIME_TYPE_H264 H264 MIME type.
 /// Note: Matching should be case insensitive.
 pub const MIME_TYPE_H264: &str = "video/H264";
-/// MIME_TYPE_HEVC HEVC MIME type.
+/// MIME_TYPE_HEVC HEVC/H265 MIME type.
 /// Note: Matching should be case insensitive.
-pub const MIME_TYPE_HEVC: &str = "video/HEVC";
+pub const MIME_TYPE_HEVC: &str = "video/H265";
 /// MIME_TYPE_OPUS Opus MIME type
 /// Note: Matching should be case insensitive.
 pub const MIME_TYPE_OPUS: &str = "audio/opus";
@@ -609,7 +609,7 @@ impl MediaEngine {
                     n_ext.1.is_audio |= typ == RTPCodecType::Audio;
                 } else {
                     let nid = n_ext.0;
-                    log::warn!("Invalid ext id mapping in update_header_extension. {} was negotiated as {}, but was {} in call", extension, nid, id);
+                    log::warn!("Invalid ext id mapping in update_header_extension. {extension} was negotiated as {nid}, but was {id} in call");
                 }
             } else {
                 // We either only have a proposal or we have neither proposal nor a negotiated id
@@ -617,7 +617,7 @@ impl MediaEngine {
 
                 if let Some(prev_ext) = negotiated_header_extensions.get(&id) {
                     let prev_uri = &prev_ext.uri;
-                    log::warn!("Assigning {} to {} would override previous assignment to {}, no action taken", id, extension, prev_uri);
+                    log::warn!("Assigning {id} to {extension} would override previous assignment to {prev_uri}, no action taken");
                 } else {
                     let h = MediaEngineHeaderExtension {
                         uri: extension.to_owned(),
