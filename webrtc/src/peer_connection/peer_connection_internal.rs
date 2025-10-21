@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use std::sync::Weak;
 
 use super::*;
+use crate::api::setting_engine::SctpMaxMessageSize;
 use crate::rtp_transceiver::{create_stream_info, PayloadType};
 use crate::stats::stats_collector::StatsCollector;
 use crate::stats::{
@@ -120,10 +121,14 @@ impl PeerConnectionInternal {
             peer_connection_state: Arc::new(AtomicU8::new(RTCPeerConnectionState::New as u8)),
 
             setting_engine: Arc::clone(&api.setting_engine),
-            media_engine: if !api.setting_engine.disable_media_engine_copy {
-                Arc::new(api.media_engine.clone_to())
-            } else {
+            media_engine: if api.setting_engine.disable_media_engine_copy {
                 Arc::clone(&api.media_engine)
+            } else {
+                let cloned_media_engine = Arc::new(api.media_engine.clone_to());
+                cloned_media_engine.set_multi_codec_negotiation(
+                    !api.setting_engine.disable_media_engine_multiple_codecs,
+                );
+                cloned_media_engine
             },
             interceptor,
             stats_interceptor,
@@ -290,7 +295,16 @@ impl PeerConnectionInternal {
                 if let Some(remote_port) = get_application_media_section_sctp_port(parsed_remote) {
                     if let Some(local_port) = get_application_media_section_sctp_port(parsed_local)
                     {
-                        self.start_sctp(local_port, remote_port).await;
+                        // TODO: Reuse the MediaDescription retrieved when looking for the message size.
+                        let max_message_size =
+                            get_application_media_section_max_message_size(parsed_remote)
+                                .unwrap_or(SctpMaxMessageSize::DEFAULT_MESSAGE_SIZE);
+                        self.start_sctp(
+                            local_port,
+                            remote_port,
+                            SCTPTransportCapabilities { max_message_size },
+                        )
+                        .await;
                     }
                 }
             }
@@ -460,17 +474,16 @@ impl PeerConnectionInternal {
     }
 
     /// Start SCTP subsystem
-    async fn start_sctp(&self, local_port: u16, remote_port: u16) {
+    async fn start_sctp(
+        &self,
+        local_port: u16,
+        remote_port: u16,
+        sctp_transport_capabilities: SCTPTransportCapabilities,
+    ) {
         // Start sctp
         if let Err(err) = self
             .sctp_transport
-            .start(
-                SCTPTransportCapabilities {
-                    max_message_size: 0,
-                },
-                local_port,
-                remote_port,
-            )
+            .start(sctp_transport_capabilities, local_port, remote_port)
             .await
         {
             log::warn!("Failed to start SCTP: {err}");

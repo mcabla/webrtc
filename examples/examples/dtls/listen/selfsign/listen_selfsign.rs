@@ -2,13 +2,13 @@ use std::io::Write;
 use std::sync::Arc;
 
 use clap::{App, AppSettings, Arg};
+use dtls::config::{Config, ExtendedMasterSecretType};
+use dtls::crypto::Certificate;
+use dtls::listener::listen;
+use dtls::Error;
 use util::conn::*;
-use webrtc_dtls::cipher_suite::CipherSuiteId;
-use webrtc_dtls::config::{Config, ExtendedMasterSecretType};
-use webrtc_dtls::listener::listen;
-use webrtc_dtls::Error;
 
-// cargo run --example listen_psk -- --host 127.0.0.1:4444
+// cargo run --example listen_selfsign -- --host 127.0.0.1:4444
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -56,13 +56,11 @@ async fn main() -> Result<(), Error> {
 
     let host = matches.value_of("host").unwrap().to_owned();
 
+    // Generate a certificate and private key to secure the connection
+    let certificate = Certificate::generate_self_signed(vec!["localhost".to_owned()])?;
+
     let cfg = Config {
-        psk: Some(Arc::new(|hint: &[u8]| -> Result<Vec<u8>, Error> {
-            println!("Client's hint: {}", String::from_utf8(hint.to_vec())?);
-            Ok(vec![0xAB, 0xC1, 0x23])
-        })),
-        psk_identity_hint: Some("webrtc-rs DTLS Client".as_bytes().to_vec()),
-        cipher_suites: vec![CipherSuiteId::Tls_Psk_With_Aes_128_Ccm_8],
+        certificates: vec![certificate],
         extended_master_secret: ExtendedMasterSecretType::Require,
         ..Default::default()
     };
